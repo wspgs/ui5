@@ -16,7 +16,7 @@
 	     or pass Sounds = false to mute everything.
 
 	API
-	  local Hub  = Tang:CreateHub({ Name, Subtitle, Scale, ToggleKey, Status, Theme, Sounds, Hint })
+	  local Hub  = Tang:CreateHub({ Name, Subtitle, Scale, ToggleKey, Status, Theme, Sounds, Hint, AutoOpen, Welcome })
 	  local Page = Hub:AddPage({ Name, Subtitle, Icon })        -- one petal each
 	  local Sec  = Page:AddSection(name, desc, icon)
 	  Sec:AddToggle / AddSlider / AddDropdown / AddKeybind / AddButton /
@@ -1604,6 +1604,24 @@ function Tang.CreateHub(a, b)
 		end)
 	end)
 
+	-- Pop the radial menu up by itself once your script has finished adding
+	-- pages, so you can see right away that the hub is loaded.
+	-- CreateHub({ AutoOpen = false }) turns this off, Welcome = false hides the toast.
+	local autoOpen = opts.AutoOpen ~= false
+	local welcome = opts.Welcome ~= false
+	task.delay(0.25, function()
+		if autoOpen and self.State == "closed" then
+			self:ShowRadial()
+		end
+		if welcome then
+			self:Notify({
+				Title = self.Name .. " loaded",
+				Content = "Pick a menu from the circle. Press " .. keyName(self.ToggleKey) .. " to hide or show it.",
+				Duration = 5,
+			})
+		end
+	end)
+
 	return self
 end
 
@@ -2305,93 +2323,4 @@ function Tang:Notify(o)
 	end)
 end
 
---==========================================================================
---  YOUR SCRIPT STARTS HERE   (all-in-one: no raw link needed)
---  Find the tags [2] YOUR FUNCTIONS, [3] NEW MENU, [4] NEW OPTION below.
---==========================================================================
-
-local Hub = Tang:CreateHub({
-	Name = "TANG HUB",
-	Subtitle = "Control panel",
-	Scale = 1, -- 1 = same size as the clip, 1.2 = bigger, 0.8 = smaller
-	ToggleKey = Enum.KeyCode.RightControl,
-	Status = { Game = "My Game", Profile = "Profile default", Note = "1 feature active" },
-})
-
---==========================================================================
--- [2] YOUR FUNCTIONS
---     Write your logic here as normal functions, then call them from the
---     Callback of an option in [4]. Nothing below this block needs editing
---     when you add a new function.
---==========================================================================
-local Flags = {} -- Flags.SomeName = true/false, set by your toggles
-
--- Runs `step` repeatedly while Flags[name] is true. Use it for anything that
--- needs to keep running while a toggle is on.
-local function runWhile(name, step, delay)
-	task.spawn(function()
-		while Flags[name] do
-			step()
-			task.wait(delay or 0)
-		end
-	end)
-end
-
-local Funcs = {}
-
--- Example (replace with your own):
--- function Funcs.DoSomething()
---     print("did something")
--- end
---
--- function Funcs.SetLoopFeature(on)
---     Flags.LoopFeature = on
---     if on then
---         runWhile("LoopFeature", function()
---             -- your repeating code here
---         end, 0.1)
---     end
--- end
-
---==========================================================================
--- [3] NEW MENU  (each page is a petal on the radial menu)
---     Icons: home flag target user star wrench bot gear list eye bolt x shield
---==========================================================================
-local MainPage = Hub:AddPage({ Name = "Main", Subtitle = "Describe this page", Icon = "home" })
-
--- local PlayerPage = Hub:AddPage({ Name = "Player", Subtitle = "Describe this page", Icon = "user" })
--- local ConfigPage = Hub:AddPage({ Name = "Config", Subtitle = "Describe this page", Icon = "wrench" })
-
---==========================================================================
--- [4] NEW OPTION  (sections group the options inside a page)
---==========================================================================
-local MainSection = MainPage:AddSection("Section", "Describe this section", "gear")
-
--- Copy any of these into a section and point Callback at your function:
---
--- MainSection:AddToggle({ Name = "Name", Desc = "Description", Default = false, Badge = "Risky",
---     Callback = function(on) Funcs.SetLoopFeature(on) end })
---
--- MainSection:AddSlider({ Name = "Name", Desc = "Description", Min = 0, Max = 100, Default = 50,
---     Increment = 1, Suffix = "", Callback = function(value) Flags.Amount = value end })
---
--- MainSection:AddDropdown({ Name = "Name", Desc = "Description", Options = { "A", "B", "C" },
---     Default = "A", Callback = function(choice) Flags.Choice = choice end })
---
--- MainSection:AddKeybind({ Name = "Name", Desc = "Description", Default = Enum.KeyCode.F,
---     Callback = function() Funcs.DoSomething() end })
---
--- MainSection:AddButton({ Name = "Name", Desc = "Description", ButtonText = "Run",
---     Callback = function() Funcs.DoSomething() end })
---
--- MainSection:AddColorPicker({ Name = "Name", Desc = "Description", Default = Color3.fromRGB(0, 205, 255),
---     Callback = function(color) Flags.Color = color end })
---
--- MainSection:AddLabel("Some info text")
--- MainSection:AddLabel("Warning text", "warn")
---
--- A second section on the same page:
--- local Section2 = MainPage:AddSection("Another section", "Description", "eye")
---
--- Pop-up message:
--- Hub:Notify({ Title = "Title", Content = "Text", Duration = 4 })
+return Tang
